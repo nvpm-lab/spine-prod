@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added the ProtoDUNE-SP bundle `full_chain_261116.yaml` and its post-processing
+  `post_261116.yaml`. A `calibration` stage before `calo_ke` recalibrates
+  reconstructed depositions from `depositions_q` with track-aware Modified Box
+  recombination: segments are corrected by their own dQ/dx instead of the flat
+  MIP factor, with stage order gain -> lifetime -> recombination. Model, weights,
+  in-chain calibration and recombination parameters are unchanged from 260906.
+  The matching data modifier `mod_data_261116.yaml` applies the data gain both
+  in-chain and in the post-processing calibration. Requires a SPINE runtime
+  with the track-aware recombination fix for degenerate segments (newer than
+  1.4.5).
 - Pipeline launches now accept `--source-list` and `--val-source-list` to
   override declared train/validation source-list variables across all stages.
 - Added SBND canonical models and staged training/cache/evaluation/reporting

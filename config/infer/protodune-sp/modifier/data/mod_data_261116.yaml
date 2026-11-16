@@ -1,0 +1,84 @@
+# Data-only modification for the ProtoDUNE-SP 261116 configuration
+# Revision date: November 16, 2026
+
+__meta__:
+  kind: mod
+  name: "data"
+  version: "261116"
+  date: "2026-11-16"
+  description: "Data-only configuration with the collection-plane data gain in-chain and in post-processing"
+  applies_to: [data]
+  compatible_with:
+    model: ">=260906"
+    post: ">=261116"
+
+include: mod_data_common.yaml
+
+override:
+  # Invert the collection-plane data calibration constant (ADC/electron).
+  model.modules.calibration.stages~:
+    - update:
+        name: gain
+        changes:
+          gain: 963.3911368015414
+  post.stages~:
+    # The post-processing recalibration must use the same data gain. Named-list
+    # updates replace nested lists, so the full stage list is restated; only the
+    # gain differs from post/post_261116.yaml. This update fails on bundles
+    # without a post `calibration` stage, so it cannot silently pair with them.
+    - update:
+        name: calibration
+        changes:
+          stages:
+            - name: gain
+              gain: 963.3911368015414
+            - name: lifetime
+              lifetime: 35000
+              driftv: 0.1565
+            - name: recombination
+              model: mbox
+              efield: 0.4867
+              mip_dedx: 2.105168
+              tracking_mode: bin_pca
+              segment_length: 3.0
+              min_count: 5
+    - remove:
+        name: children_count
+    - remove:
+        name: match
+    - update:
+        name: calo_ke
+        changes:
+          run_mode: reco
+    - remove:
+        name: containment
+    - insert:
+        before: time_containment
+        value:
+          name: containment
+          run_mode: reco
+          mode: source
+          margin: 5.0
+          cathode_margin: -5.0
+          exclude_pids:
+            - 0
+            - 1
+    - update:
+        name: time_containment
+        changes:
+          run_mode: reco
+    - update:
+        name: fiducial
+        changes:
+          run_mode: reco
+    - remove:
+        name: topology_threshold
+    - insert:
+        before: start_dedx
+        value:
+          name: topology_threshold
+          run_mode: reco
+          ke_thresholds:
+            1: 50
+            4: 50
+            default: 25

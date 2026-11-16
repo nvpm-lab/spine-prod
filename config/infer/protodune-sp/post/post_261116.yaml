@@ -1,0 +1,144 @@
+# Post-processing configuration for ProtoDUNE-SP
+# Revision date: November 16, 2026
+
+__meta__:
+  kind: bundle
+  version: "261116"
+  date: "2026-11-16"
+  description: "ProtoDUNE-SP post-processing with track-aware recombination"
+  compatible_with:
+    base: ">=260210"
+    io: ">=260210"
+    model: ">=260906"
+  tags: [normalized-fm, shower-pp, track-recomb]
+
+include: post_common.yaml
+
+override:
+  post.stages~:
+    # Recalibrate reconstructed depositions from the preserved input charge.
+    # The in-chain calibration (model 260906) runs before clustering and can
+    # only apply the flat MIP recombination factor. Here tracks are segmented
+    # and each segment gets the inverse Modified Box factor of its own dQ/dx;
+    # showers and unassociated points keep the flat MIP factor.
+    # Lifetime must precede recombination so that the inverse Box sees the
+    # attenuation-corrected dQ/dx. Gain, lifetime and recombination parameters
+    # match model/protodune-sp/calibration/calibration_260906.yaml (MC); the
+    # data modifier mod_data_261116.yaml swaps in the data gain.
+    - insert:
+        before: calo_ke
+        value:
+          name: calibration
+          depositions_source: depositions_q
+          do_tracking: true
+          stages:
+            - name: gain
+              # MC, inverse of CalAreaConstants[2] = 1.0156e-3 ADC/electron
+              gain: 984.6396218983853
+            - name: lifetime
+              lifetime: 35000
+              driftv: 0.1565
+            - name: recombination
+              model: mbox
+              efield: 0.4867
+              mip_dedx: 2.105168
+              tracking_mode: bin_pca
+              # ~4 points/cm along reco tracks (0.48 cm voxels): with these
+              # values ~97% of track segments (~99% of track charge) get a
+              # valid local dQ/dx. The default min_count (10) needs >= 5 cm.
+              segment_length: 3.0
+              min_count: 5
+    - update:
+        name: calo_ke
+        changes:
+          shower_fudge: 1.2359
+    - update:
+        name: shape_logic
+        changes:
+          maximum_michel_ke: 100
+    - update:
+        name: direction
+        changes:
+          radius: 60.0
+    - insert:
+        before: vertex
+        value:
+          name: particle_threshold
+          primary_threshold: 0.1
+    - insert:
+        before: vertex
+        value:
+          name: shower_start_merge
+          angle_threshold: 0.175
+          distance_threshold: 1.0
+          track_length_limit: 50
+          track_dedx_limit:
+    - insert:
+        before: vertex
+        value:
+          name: shower_start_correction
+          update_directions: true
+          optimize: true
+          radius: 60
+    - insert:
+        before: fiducial
+        value:
+          name: containment
+          run_mode: both
+          truth_point_mode: points_g4
+          mode: source
+          margin: 5.0
+          cathode_margin: -5.0
+          exclude_pids:
+            - 0
+            - 1
+    - insert:
+        before: fiducial
+        value:
+          name: time_containment
+          logical: true
+          mode: source
+          margin: 0.0
+          cathode_margin: -5.0
+          exclude_pids:
+            - 0
+            - 1
+    - insert:
+        after: match
+        value:
+          name: start_dedx
+          radius: 3.0
+          mode: default
+          include_pids:
+            - 0
+            - 1
+            - 2
+            - 3
+            - 4
+    - insert:
+        after: start_dedx
+        value:
+          name: end_dedx
+          radius: 3.0
+          mode: default
+          include_pids:
+            - 2
+            - 3
+            - 4
+    - insert:
+        after: end_dedx
+        value:
+          name: start_straightness
+          radius: 3.0
+          n_components: 3
+    - insert:
+        after: start_straightness
+        value:
+          name: particle_spread
+          start_mode: start_point
+          use_start_dir: false
+    - insert:
+        after: particle_spread
+        value:
+          name: shower_conversion_distance
+          mode: vertex_to_points

@@ -1,0 +1,15 @@
+# ProtoDUNE-SP full chain trained on the mpvmpr v1 dataset, with track-aware
+# recombination in post-processing
+# Revision date: November 16, 2026
+
+__meta__:
+  kind: bundle
+  version: "261116"
+  date: "2026-11-16"
+  description: "ProtoDUNE-SP mpvmpr v1 full chain with track-aware recombination"
+
+include:
+  - base/base_260210.yaml
+  - io/io_260210.yaml
+  - model/model_260906.yaml
+  - post/post_261116.yaml
